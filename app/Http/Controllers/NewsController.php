@@ -6,18 +6,43 @@ use App\Http\Resources\NewsResource;
 use App\News;
 use Illuminate\Http\Request;
 use Validator;
+use Illuminate\Validation\Rule;
 class NewsController extends Controller
 {
     /**
      * Display a listing of the resource.
-     *
+     * @param \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
 
-    public function index()
+    public function index(Request $request)
     {
         //
-        $news = News::paginate(10);
+        Validator::make(
+            $request->all(), [
+                'title' => 'sometimes|string|max:250|min:5',
+                'from' => 'sometimes|date_format:Y-m-d',
+                'to' => 'sometimes|date_format:Y-m-d',
+                'deleted' => 'sometimes|in:1'
+
+        ])->validate();
+
+
+        $news = new News();
+
+        if(Request()->has('title'))
+            $news = $news->where('title' , 'like' , "%" . Request()->input('title') . "%");
+
+        if(Request()->has('from'))
+            $news = $news->where('date' , '>=' , Request()->input('from'));
+
+        if(Request()->has('to'))
+            $news = $news->where('date' , '<' , Request()->input('to'));
+
+        if(Request()->has('deleted'))
+            $news = $news->withTrashed();
+
+        $news = $news->paginate(2);
 
         return NewsResource::collection($news);
     }
@@ -135,18 +160,32 @@ class NewsController extends Controller
         Validator::make(
             ['id' => $id],
             [
-                'id' => 'required|integer|exists:news,id',
+                'id' => [
+                    'required',
+                    'integer',
+                    /*'exists:news,id'*/
+                    /*Rule::exists('news')->where(function ($query) {
+                        $query->whereNull('deleted_at');
+                    })*/
+                ],
             ]
         )->validate();
 
-        $news = News::find($id)->delete();
+        $news = News::withTrashed()->where('id' , $id)->first();
 
-        if($news->trashed()){
-            $output = ['success' => true , 'result' => 'news entity deleted'];
-            $status = $this->status_success;
+        if($news && !$news->deleted_at){
+            $news->delete();
+
+            if($news->trashed()){
+                $output = ['success' => true , 'result' => 'news entity deleted'];
+                $status = $this->status_success;
+            }else{
+                $output = ['success' => false , 'error' => "cannot delete news entity now , try again later"];
+                $status = $this->status_server_error;
+            }
         }else{
-            $output = ['success' => false , 'error' => "cannot delete news entity now , try again later"];
-            $status = $this->status_server_error;
+            $output = ['success' => false , 'error' => "selected news is either deleted or does not exists"];
+            $status = $this->status_not_found;
         }
 
         return response()->json($output,$status);

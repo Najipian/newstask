@@ -13,4 +13,5 @@ class Controller extends BaseController
 
     protected $status_success = 200;
     protected $status_server_error = 503;
+    protected $status_not_found = 404;
 }
