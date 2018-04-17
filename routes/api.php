@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 */
 
 Route::group(['middleware' => ['cors']], function () {
-    Route::resource('news', 'NewsController');
+    Route::apiResource('news', 'NewsController');
 });
 
 /*Route::middleware('auth:api')->get('/user', function (Request $request) {
