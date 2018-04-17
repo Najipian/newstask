@@ -30,19 +30,19 @@ class NewsController extends Controller
 
         $news = new News();
 
-        if(Request()->has('title'))
-            $news = $news->where('title' , 'like' , "%" . Request()->input('title') . "%");
+        if($request->has('title'))
+            $news = $news->where('title' , 'like' , "%" . $request->title . "%");
 
-        if(Request()->has('from'))
-            $news = $news->where('date' , '>=' , Request()->input('from'));
+        if($request->has('from'))
+            $news = $news->where('date' , '>=' , $request->from);
 
-        if(Request()->has('to'))
-            $news = $news->where('date' , '<' , Request()->input('to'));
+        if($request->has('to'))
+            $news = $news->where('date' , '<' , $request->to);
 
-        if(Request()->has('deleted'))
+        if($request->has('deleted'))
             $news = $news->withTrashed();
 
-        $news = $news->paginate(2);
+        $news = $news->paginate(10);
 
         return NewsResource::collection($news);
     }
